@@ -1,0 +1,56 @@
+# Misophonia trigger suppressor config
+#
+# Each trigger maps to one or more AudioSet class names (as used by the
+# PANNs/CNN14 model). Some of your requested triggers don't have an exact
+# 1:1 AudioSet class, so they're mapped to the closest available class(es):
+#
+#   - "tapping on phone" -> "Tap" + "Clicking" (no phone-specific class exists;
+#     this will also fire on other similar tap/click sounds, e.g. pen clicks,
+#     typing on a hard surface). Tune the threshold if it over-fires.
+#   - "heavy breathing"  -> "Breathing" (AudioSet doesn't distinguish light vs
+#     heavy breathing, so this reacts to audible breathing generally).
+#
+# threshold: 0.0-1.0, model confidence required to count as "detected".
+#   Lower = more sensitive (mutes more, more false positives).
+#   Higher = less sensitive (may miss quiet/short trigger sounds).
+
+triggers:
+  chewing:
+    classes: ["Chewing, mastication"]
+    threshold: 0.15
+  crunching:
+    classes: ["Crunch"]
+    threshold: 0.15
+  tapping_on_phone:
+    classes: ["Tap", "Clicking"]
+    threshold: 0.25
+  keyboard_typing:
+    classes: ["Typing", "Computer keyboard"]
+    threshold: 0.20
+  throat_clearing:
+    classes: ["Throat clearing"]
+    threshold: 0.20
+  heavy_breathing:
+    classes: ["Breathing"]
+    threshold: 0.30
+
+audio:
+  # Devices are matched by name substring, resolved fresh at every startup --
+  # NOT by index. macOS reshuffles CoreAudio device indices whenever a
+  # Bluetooth device connects/disconnects, so a saved index goes stale
+  # (this bit us once already). Run `python list_devices.py` any time to see
+  # current device names.
+  input_device: "MacBook Pro Microphone"  # AirPods Max's Bluetooth mic applies voice-isolation DSP that
+                                           # scrubs out non-speech sound (confirmed: every trigger class
+                                           # read 0.000 through it) before our model ever sees it. Using
+                                           # the laptop's raw mic instead so trigger sounds actually reach
+                                           # the model.
+  output_device: "AirPods Max"            # keeps playback private/binaural, only the mic side changes
+  sample_rate: 32000     # PANNs native rate
+  block_ms: 100          # size of each audio chunk pulled from the mic, in ms
+  window_s: 2.0          # rolling window fed to the model each inference pass (longer = more context, more latency)
+  delay_s: 1.3           # playback delay (lookahead buffer) so mute decisions land before you hear the sound;
+                          # should be >= window_s/2 roughly, tune to taste
+  attack_ms: 30           # fade-out time when muting starts (avoids clicks)
+  release_ms: 120         # fade-in time when muting ends
+  hold_ms: 150            # keep muted this long after last detection, to bridge brief gaps mid-trigger-sound

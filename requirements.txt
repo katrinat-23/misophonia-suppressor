@@ -1,0 +1,7 @@
+torch>=2.2
+torchlibrosa>=0.1.0
+panns_inference>=0.1.1
+sounddevice>=0.4.6
+numpy>=1.24
+PyYAML>=6.0
+Flask>=3.0
